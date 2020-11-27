@@ -7,7 +7,7 @@
     <groupId>com.szh.proxy</groupId>
     <artifactId>proxy.game</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <build>
+    <build><!---->
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
