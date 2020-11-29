@@ -1,6 +1,8 @@
 package com.proxy.game.netty;
 
 import com.proxy.game.client.OsHelper;
+import com.proxy.game.netty.pojo.KryoMsgDecoder;
+import com.proxy.game.netty.pojo.KryoMsgEncoder;
 import com.proxy.game.netty.pra.PraHttpInboundHandler;
 import com.proxy.game.netty.test.TestUseHandler;
 import com.proxy.game.netty.test.TestUseOutHandler;
@@ -17,7 +19,7 @@ import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.HttpServerCodec;
 
-public class PraUseServer {
+public class PraUseClientServer {
 
     public static void main(String[] args) {
         try {
@@ -32,9 +34,8 @@ public class PraUseServer {
                         @Override
                         protected void initChannel(SocketChannel ch) {
                             //ch.pipeline().addLast("httpCoder",new HttpServerCodec());
-                            //ch.pipeline().addLast("httpAggregator",new HttpObjectAggregator(1024000 << 2));
                             ch.pipeline().addLast(new HttpRequestDecoder());
-                            ch.pipeline().addLast(new HttpResponseEncoder());
+                            ch.pipeline().addLast("httpAggregator",new HttpObjectAggregator(1024000 << 2));
                             ch.pipeline().addLast("praHttpInbound1",new PraHttpInboundHandler());
                             /**
                              *     test4 out find pre so test4 is first then find pre is default
