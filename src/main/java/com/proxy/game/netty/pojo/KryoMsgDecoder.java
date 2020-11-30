@@ -19,6 +19,7 @@ public class KryoMsgDecoder extends ByteToMessageDecoder {
         if (in.readableBytes() < HEAD_LENGTH) {
             return;
         }
+        //
         // 标记当前readIndex的位置
         in.markReaderIndex();
         // 读取传送过来的消息长度，ByteBuf的 readInt() 方法会让它的readIndex+4
