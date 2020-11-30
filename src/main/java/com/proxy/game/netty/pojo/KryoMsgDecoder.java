@@ -1,9 +1,13 @@
 package com.proxy.game.netty.pojo;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 
+import java.io.ByteArrayInputStream;
+import java.util.HashMap;
 import java.util.List;
 
 public class KryoMsgDecoder extends ByteToMessageDecoder {
@@ -31,7 +35,12 @@ public class KryoMsgDecoder extends ByteToMessageDecoder {
         byte[] body = new byte[dataLength];
         in.readBytes(body);
         // 将bytes数组转换为我们需要的对象
-        String s = new String(body);
+        //String s = new String(body);
+
+        Kryo kryo = new Kryo();
+
+        Input input = new Input(new ByteArrayInputStream(body));
+        RemotePojo s = kryo.readObject(input, RemotePojo.class);
         out.add(s);
     }
 }

@@ -19,7 +19,8 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 
-        RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
+        //RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
+        RemotePojo pojo = (RemotePojo) msg;
         final Bootstrap b2 = new Bootstrap();
         b2.group(ctx.channel().eventLoop())
                 .channel(ctx.channel().getClass())

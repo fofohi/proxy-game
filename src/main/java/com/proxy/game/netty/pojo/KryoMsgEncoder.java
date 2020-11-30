@@ -1,11 +1,16 @@
 package com.proxy.game.netty.pojo;
 
 import com.alibaba.fastjson.JSON;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
 import com.sun.org.apache.xml.internal.serializer.Serializer;
 import com.sun.org.apache.xml.internal.serializer.SerializerFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
+
+import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
 
 public class KryoMsgEncoder extends MessageToByteEncoder<RemotePojo> {
     //private KryoSerializer serializer = KryoSerializerFactory.getSerializer(RemotePojo.class);
@@ -13,11 +18,20 @@ public class KryoMsgEncoder extends MessageToByteEncoder<RemotePojo> {
     @Override
     protected void encode(ChannelHandlerContext ctx, RemotePojo msg, ByteBuf out) throws Exception {
         // 1. 将对象转换为byte
-        byte[] body = JSON.toJSONString(msg).getBytes();
+        //byte[] body = JSON.toJSONString(msg).getBytes();
+        Kryo kryo = new Kryo();
+        kryo.register(RemotePojo.class);
+        kryo.register(HashMap.class);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        Output outPut = new Output(bos);
+        kryo.writeClassAndObject(outPut,msg);
+        outPut.flush();
         // 2. 读取消息的长度
-        int dataLength = body.length;
+        int dataLength = bos.size();
+        //int dataLength = body.length;
         // 3. 先将消息长度写入，也就是消息头
         out.writeInt(dataLength);
-        out.writeBytes(body);
+        out.writeBytes(bos.toByteArray());
+        outPut.close();
     }
 }

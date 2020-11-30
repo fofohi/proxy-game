@@ -17,12 +17,11 @@ public class UndertowServer {
         try {
             //本地undertow->验证服务器->入口
             LoadBalancingProxyClient loadBalancer = new TestProxyServer()
-                    .addHost(new URI("http://103.216.154.69:11431"))
                     .addHost(new URI("http://localhost:9079"))
                     .setConnectionsPerThread(20);
 
             Undertow server3 = Undertow.builder()
-                    .addHttpListener(9079, "localhost")
+                    .addHttpListener(9011, "localhost")
                     .setHandler(resource(new PathResourceManager(Paths.get("F:\\data"), 100))
                             .setDirectoryListingEnabled(false))
                     .build();
@@ -30,7 +29,7 @@ public class UndertowServer {
 
 
             Undertow reverseProxy = Undertow.builder()
-                    .addHttpListener(9078, "localhost")
+                    .addHttpListener(9012, "localhost")
                     .setIoThreads(4)
                     .setHandler(new ProxyHandler(loadBalancer, 30000, ResponseCodeHandler.HANDLE_404))
                     .build();
