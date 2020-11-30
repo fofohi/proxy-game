@@ -18,20 +18,11 @@ public class KryoMsgEncoder extends MessageToByteEncoder<RemotePojo> {
     @Override
     protected void encode(ChannelHandlerContext ctx, RemotePojo msg, ByteBuf out) throws Exception {
         // 1. 将对象转换为byte
-        //byte[] body = JSON.toJSONString(msg).getBytes();
-        Kryo kryo = new Kryo();
-        kryo.register(RemotePojo.class);
-        kryo.register(HashMap.class);
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Output outPut = new Output(bos);
-        kryo.writeClassAndObject(outPut,msg);
-        outPut.flush();
+        byte[] body = JSON.toJSONString(msg).getBytes();
         // 2. 读取消息的长度
-        int dataLength = bos.size();
-        //int dataLength = body.length;
+        int dataLength = body.length;
         // 3. 先将消息长度写入，也就是消息头
         out.writeInt(dataLength);
-        out.writeBytes(bos.toByteArray());
-        outPut.close();
+        out.writeBytes(body);
     }
 }

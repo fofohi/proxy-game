@@ -18,9 +18,8 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-
-        //RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
-        RemotePojo pojo = (RemotePojo) msg;
+        RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
+        //RemotePojo pojo = (RemotePojo) msg;
         final Bootstrap b2 = new Bootstrap();
         b2.group(ctx.channel().eventLoop())
                 .channel(ctx.channel().getClass())
@@ -36,7 +35,13 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
                     }
                 })
         ;
-        b2.connect(pojo.getHeaders().get("Host"),80).addListener((ChannelFutureListener) future -> {
+
+        String hostAndPort = pojo.getHeaders().get("Host");
+
+        String[] hostAndPortString = hostAndPort.split(":");
+
+
+        b2.connect(hostAndPortString[0],hostAndPortString.length > 1 ? Integer.parseInt(hostAndPortString[1]) : 80).addListener((ChannelFutureListener) future -> {
             if(future.isSuccess()){
                 if(pojo.getUri().contains("443")){
                     return;
