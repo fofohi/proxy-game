@@ -81,7 +81,7 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
                     ;
                     //b.connect("localhost",9077).addListener((ChannelFutureListener) future -> {
                     //});
-                    b.connect("162.14.8.228", 19077).addListener((ChannelFutureListener) future -> {
+                    b.connect("", 0).addListener((ChannelFutureListener) future -> {
 
                     });
 
