@@ -8,7 +8,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 
 public class KryoMsgEncoder extends MessageToByteEncoder<RemotePojo> {
-    private KryoSerializer serializer = KryoSerializerFactory.getSerializer(RemotePojo.class);
+    //private KryoSerializer serializer = KryoSerializerFactory.getSerializer(RemotePojo.class);
 
     @Override
     protected void encode(ChannelHandlerContext ctx, RemotePojo msg, ByteBuf out) throws Exception {

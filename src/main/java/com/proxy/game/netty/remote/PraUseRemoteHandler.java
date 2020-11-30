@@ -31,35 +31,29 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
                         ch.pipeline().addLast(new HttpRequestEncoder());
                         ch.pipeline().addLast(new HttpResponseDecoder());
                         ch.pipeline().addLast(new HttpObjectAggregator(102400000));
-                        ch.pipeline().addLast(new PraTargetHandler());
-                        //ch.pipeline().addLast(new HttpRequestEncoder());
-                        //ch.pipeline().addLast(new RelayHandler(browserToLocalServerChannel.channel()));
+                        ch.pipeline().addLast(new PraTargetHandler(ctx));
                     }
                 })
         ;
-        b2.connect("47.101.39.121",30603).addListener((ChannelFutureListener) future -> {
+        b2.connect(pojo.getHeaders().get("Host"),80).addListener((ChannelFutureListener) future -> {
             if(future.isSuccess()){
                 if(pojo.getUri().contains("443")){
                     return;
                 }
-                log.info("in here {}",future.channel());
                 DefaultFullHttpRequest full = new DefaultFullHttpRequest(
                         HttpVersion.HTTP_1_1,
                         new HttpMethod(pojo.getMethod()),
-                        "/assets_en/1606182644/js_low/config.js", Unpooled.wrappedBuffer(pojo.getContent().getBytes()
+                        pojo.getUri().replace("http://" + pojo.getHeaders().get("Host"),"")
+                        , Unpooled.wrappedBuffer(pojo.getContent().getBytes()
                 )
                 );
                 for (Map.Entry<String, String> stringStringEntry : pojo.getHeaders().entrySet()) {
                     full.headers().add(stringStringEntry.getKey(),stringStringEntry.getValue());
                 }
+                //往真正的服务器写
                 future.channel().writeAndFlush(full);
             }
         });
-
-
-
-
-        super.channelRead(ctx, msg);
     }
 
 }

@@ -1,3 +1,4 @@
+/*
 package com.proxy.game.netty.pojo;
 
 import com.esotericsoftware.kryo.Kryo;
@@ -71,3 +72,4 @@ public class KryoUtil implements KryoSerializer {
         return getKryo();
     }
 }
+*/

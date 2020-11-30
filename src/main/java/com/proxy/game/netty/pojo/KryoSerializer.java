@@ -1,7 +1,5 @@
 package com.proxy.game.netty.pojo;
 
-import com.esotericsoftware.kryo.Kryo;
-
 import java.io.Serializable;
 
 public interface KryoSerializer extends Serializable {
@@ -15,5 +13,4 @@ public interface KryoSerializer extends Serializable {
      */
     <T> T deserialize(byte[] bytes);
 
-    Kryo get();
 }

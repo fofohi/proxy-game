@@ -23,6 +23,7 @@ public class PraUseRemoteServer {
             // Configure the server.
             ServerBootstrap b = new ServerBootstrap();
             b.option(ChannelOption.SO_BACKLOG, 10240);
+            b.option(ChannelOption.SO_KEEPALIVE,true);
             b.group(bossGroup, workerGroup)
                     .channel(OsHelper.serverSocketChannelClazz())
                     .childHandler(new ChannelInitializer<SocketChannel>() {

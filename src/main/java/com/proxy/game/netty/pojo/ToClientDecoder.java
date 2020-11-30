@@ -4,9 +4,12 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.List;
 
-public class KryoMsgDecoder extends ByteToMessageDecoder {
+public class ToClientDecoder extends ByteToMessageDecoder {
     private static final int HEAD_LENGTH = 4; // 表示数据流（头部是消息长度）头部的字节数
     //private KryoSerializer serializer = KryoSerializerFactory.getSerializer(RemotePojo.class);
 
@@ -31,7 +34,27 @@ public class KryoMsgDecoder extends ByteToMessageDecoder {
         byte[] body = new byte[dataLength];
         in.readBytes(body);
         // 将bytes数组转换为我们需要的对象
-        String s = new String(body);
-        out.add(s);
+        out.add(toObject(body));
     }
+    /**
+     * 数组转对象
+     * @param bytes
+     * @return
+     */
+    public Object toObject (byte[] bytes) {
+        Object obj = null;
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream (bytes);
+            ObjectInputStream ois = new ObjectInputStream (bis);
+            obj = ois.readObject();
+            ois.close();
+            bis.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } catch (ClassNotFoundException ex) {
+            ex.printStackTrace();
+        }
+        return obj;
+    }
+
 }

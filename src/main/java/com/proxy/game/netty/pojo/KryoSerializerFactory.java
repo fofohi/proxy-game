@@ -1,3 +1,4 @@
+/*
 package com.proxy.game.netty.pojo;
 
 public class KryoSerializerFactory {
@@ -6,3 +7,4 @@ public class KryoSerializerFactory {
         return new KryoUtil(cls);
     }
 }
+*/
