@@ -35,12 +35,12 @@
         </plugins>
     </build>
 
-    <modules>
+    <!--<modules>
         <module>game-proxy-local-client</module>
         <module>game-proxy-remote-server</module>
         <module>game-proxy-pojo</module>
     </modules>
-
+-->
     <dependencies>
         <!--netty-->
         <dependency>

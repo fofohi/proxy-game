@@ -26,7 +26,6 @@ public class PraTargetHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        log.info("PraTargetHandler {}",msg);
         if(msg instanceof FullHttpResponse){
             RemoteToLocalPojo remotePojo = new RemoteToLocalPojo();
             FullHttpResponse fMsg = (FullHttpResponse) msg;
@@ -43,12 +42,15 @@ public class PraTargetHandler extends ChannelInboundHandlerAdapter {
 
             DefaultFullHttpResponse response = new DefaultFullHttpResponse(
                     HttpVersion.HTTP_1_1,
-                    HttpResponseStatus.OK,
+                    fMsg.status(),
                     fMsg.content()
             );
+
             for (Map.Entry<String, String> entry : entries) {
                 response.headers().add(entry.getKey(),entry.getValue());
             }
+
+            log.info("PraTargetHandler {}",response.toString());
 
             toLocalClient.pipeline().addLast(new HttpResponseEncoder());
             toLocalClient.pipeline().remove("remoteKryo1");
