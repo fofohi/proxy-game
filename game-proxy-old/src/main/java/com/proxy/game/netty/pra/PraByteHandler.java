@@ -25,7 +25,7 @@ public class PraByteHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-
+        //
         log.info("PraByteHandler msg {}",msg);
         /*RemoteToLocalPojo remoteToLocalPojo = (RemoteToLocalPojo) msg;
         browserToLocalServerChannel.pipeline().addLast(new HttpResponseEncoder());
