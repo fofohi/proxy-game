@@ -16,7 +16,9 @@ public class KryoMsgEncoder extends MessageToByteEncoder<RemotePojo> {
     @Override
     protected void encode(ChannelHandlerContext ctx, RemotePojo msg, ByteBuf out) throws Exception {
         // 1. 将对象转换为byte
-        byte[] body = JSON.toJSONString(msg).getBytes();
+        //byte[] body = JSON.toJSONString(msg).getBytes();
+        byte[] body = ProtostuffUtils.serialize(msg);
+
         // 2. 读取消息的长度
         int dataLength = body.length;
         // 3. 先将消息长度写入，也就是消息头
