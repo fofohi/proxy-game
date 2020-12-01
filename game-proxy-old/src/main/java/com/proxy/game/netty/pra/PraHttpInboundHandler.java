@@ -5,7 +5,8 @@ import com.proxy.game.netty.pojo.RemotePojo;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.Promise;
@@ -14,21 +15,16 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 @Slf4j
 public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
 
-    private static Map<String,Channel> connectChannel = new ConcurrentHashMap<>();
 
     @Override
     public void channelRead(ChannelHandlerContext browserToLocalServerChannel, Object msg){
         log.info("msg {}",msg);
-
-
         if(msg instanceof FullHttpRequest){
-
             FullHttpRequest fMsg = (FullHttpRequest) msg;
             if(fMsg.method().equals(HttpMethod.CONNECT)){
                 SocksServerUtils.closeOnFlush(browserToLocalServerChannel.channel());
@@ -65,27 +61,26 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
                                 //SocksServerUtils.closeOnFlush(browserToLocalServerChannel.channel());
                             }//
                         });
-                //if(connectChannel.get("test") == null){
-                    final Bootstrap b = new Bootstrap();
-                    //localServerToIplcChannel
-                    b.group(browserToLocalServerChannel.channel().eventLoop())
-                            .channel(browserToLocalServerChannel.channel().getClass())
-                            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000)
-                            .option(ChannelOption.SO_KEEPALIVE, true)
-                            .handler(new ChannelInitializer<SocketChannel>() {
-                                @Override
-                                protected void initChannel(SocketChannel ch) {
-                                    ch.pipeline().addLast(new PraHttpProxyHandler(promise));
-                                }
-                            })
-                    ;
-                    b.connect("localhost",9077).addListener((ChannelFutureListener) future -> {
-                    });
-                   /* b.connect("162.14.8.228", 19077).addListener((ChannelFutureListener) future -> {
+                final Bootstrap b = new Bootstrap();
+                //localServerToIplcChannel
+                b.group(browserToLocalServerChannel.channel().eventLoop())
+                        .channel(browserToLocalServerChannel.channel().getClass())
+                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000)
+                        .option(ChannelOption.SO_KEEPALIVE, true)
+                        .handler(new ChannelInitializer<SocketChannel>() {
+                            @Override
+                            protected void initChannel(SocketChannel ch) {
+                                ch.pipeline().addLast(new PraHttpProxyHandler(promise));
+                            }
+                        })
+                ;
+                b.connect("localhost",9077).addListener((ChannelFutureListener) future -> {
 
-                    });*/
 
-                //}
+                });
+                /*b.connect("162.14.8.228", 19077).addListener((ChannelFutureListener) future -> {
+
+                });*/
 
             }
         }

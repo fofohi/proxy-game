@@ -37,7 +37,7 @@ public class PraByteHandler extends ChannelInboundHandlerAdapter {
                 );
         Set<Map.Entry<String, String>> entries = remoteToLocalPojo.getHeaders().entrySet();
         for (Map.Entry<String, String> entry : entries) {
-            response.headers().add(entry.getKey(),entry.getValue());
+            response.headers().add(entry.getKey(),entry.getValue());n
         }*/
         browserToLocalServerChannel.pipeline().addLast(new HttpResponseDecoder());
         browserToLocalServerChannel.pipeline().addLast(new HttpObjectAggregator(10000000));

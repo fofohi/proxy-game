@@ -79,9 +79,7 @@ public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
                 /**
                  * todo 考虑两个入口
                  */
-                b.connect("localhost",9077).addListener((ChannelFutureListener) future -> {
-
-                });
+                b.connect("localhost",9077);
             }
         }
     }

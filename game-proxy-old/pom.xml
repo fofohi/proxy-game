@@ -28,7 +28,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.proxy.game.netty.PraUseRemoteServer</mainClass>
+                            <mainClass>com.proxy.game.netty.PraUseClientServer</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

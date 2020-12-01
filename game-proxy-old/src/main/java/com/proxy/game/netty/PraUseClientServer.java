@@ -1,25 +1,28 @@
 package com.proxy.game.netty;
 
 import com.proxy.game.client.OsHelper;
-import com.proxy.game.netty.pojo.KryoMsgDecoder;
 import com.proxy.game.netty.pojo.KryoMsgEncoder;
 import com.proxy.game.netty.pra.PraHttpInboundHandler;
-import com.proxy.game.netty.test.TestUseHandler;
-import com.proxy.game.netty.test.TestUseOutHandler;
-import com.proxy.game.netty.test.TestUseOutTwoHandler;
-import com.proxy.game.netty.test.TestUseTwoHandler;
+import com.proxy.game.netty.pra.PraHttpProxyHandler;
+import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpResponseEncoder;
-import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.util.concurrent.Promise;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.concurrent.ConcurrentHashMap;
+
+@Slf4j
 public class PraUseClientServer {
+
+    public static ConcurrentHashMap<String,Object> map = new ConcurrentHashMap<>();
+
+
 
     public static void main(String[] args) {
         try {
