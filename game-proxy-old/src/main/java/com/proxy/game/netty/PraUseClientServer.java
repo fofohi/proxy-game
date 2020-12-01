@@ -37,7 +37,7 @@ public class PraUseClientServer {
                         @Override
                         protected void initChannel(SocketChannel ch) {
                             ch.pipeline().addLast(new HttpRequestDecoder());
-                            ch.pipeline().addLast("httpAggregator",new HttpObjectAggregator(1024000 << 2));
+                            //ch.pipeline().addLast("httpAggregator",new HttpObjectAggregator(1024000 << 2));
                             ch.pipeline().addLast("praHttpInbound1",new PraHttpInboundHandler());
 
                         }

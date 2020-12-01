@@ -18,6 +18,7 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         //RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
         RemotePojo pojo = (RemotePojo) msg;
+        log.info("uri {} contents {}",pojo.getUri(),pojo.getContent().size());
         final Bootstrap b2 = new Bootstrap();
         b2.group(ctx.channel().eventLoop())
                 .channel(ctx.channel().getClass())
@@ -44,18 +45,18 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
                 if(pojo.getUri().contains("443")){
                     return;
                 }
-                DefaultFullHttpRequest full = new DefaultFullHttpRequest(
-                        HttpVersion.HTTP_1_1,
+
+                DefaultHttpRequest full = new DefaultHttpRequest(HttpVersion.HTTP_1_1,
                         new HttpMethod(pojo.getMethod()),
-                        pojo.getUri().replace("http://" + pojo.getHeaders().get("Host"),"")
-                        , Unpooled.wrappedBuffer(pojo.getContent().getBytes()
-                )
-                );
+                        pojo.getUri().replace("http://" + pojo.getHeaders().get("Host"),""));
                 for (Map.Entry<String, String> stringStringEntry : pojo.getHeaders().entrySet()) {
                     full.headers().add(stringStringEntry.getKey(),stringStringEntry.getValue());
                 }
                 //往真正的服务器写
                 future.channel().writeAndFlush(full);
+                for (byte[] bytes : pojo.getContent()) {
+                    future.channel().writeAndFlush(Unpooled.wrappedBuffer(bytes));
+                }
             }
         });
     }
