@@ -6,7 +6,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.*;
-import io.netty.util.concurrent.FutureListener;
 
 import java.util.ArrayList;
 
