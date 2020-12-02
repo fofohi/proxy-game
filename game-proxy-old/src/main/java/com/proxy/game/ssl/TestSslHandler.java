@@ -1,12 +1,10 @@
 package com.proxy.game.ssl;
 
-import com.proxy.game.netty.pra.PraHttpProxyHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.*;
-import io.netty.util.concurrent.FutureListener;
 
 import java.util.ArrayList;
 
@@ -37,6 +35,7 @@ public class TestSslHandler extends ChannelInboundHandlerAdapter {
             contents.add((HttpContent) msg);
             if (msg instanceof LastHttpContent) {
                 if (request.method().equals(HttpMethod.CONNECT)) {
+                    clientChannel.config().setAutoRead(false);
                     ChannelFuture sslFuture = clientChannel.writeAndFlush(Unpooled.wrappedBuffer("HTTP/1.1 200 Connection Established\r\n\r\n".getBytes()));
                     sslFuture.addListener((ChannelFutureListener) future -> {
                         if (future.isSuccess() && future.isDone()){
@@ -44,31 +43,33 @@ public class TestSslHandler extends ChannelInboundHandlerAdapter {
                             sslOk = true;
                         }
                     });
+
+                    String hostAndPortString = request.headers().get("Host");
+                    String[] hostAndPort = hostAndPortString.split(":");
+                    Bootstrap b = new Bootstrap();
+                    b.group(clientChannel.eventLoop())
+                            .channel(clientChannel.getClass())
+                            .handler(new ChannelInitializer<SocketChannel>() {
+                                @Override
+                                protected void initChannel(SocketChannel ch) {
+                                    ch.pipeline().addLast(new TestSsl2Handler(clientChannel));
+                                }
+                            });
+                    ChannelFuture f = b.connect(hostAndPort[0], hostAndPort.length > 1 ? Integer.parseInt(hostAndPort[1]) : 80);
+                    remoteChannel = f.channel();
+
+                    f.addListener((ChannelFutureListener) future -> {
+                        if (future.isSuccess()) {
+                            clientChannel.config().setAutoRead(true);
+                            remoteChannel.writeAndFlush(request);
+                            contents.forEach(o -> remoteChannel.writeAndFlush(o));
+                        } else {
+                            clientChannel.close();
+                        }
+                    });
                 }
             }
         }
-        String hostAndPortString = request.headers().get("Host");
-        String[] hostAndPort = hostAndPortString.split(":");
-        Bootstrap b = new Bootstrap();
-        b.group(clientChannel.eventLoop())
-                .channel(clientChannel.getClass())
-                .handler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    protected void initChannel(SocketChannel ch) {
-                        ch.pipeline().addLast(new TestSsl2Handler(clientChannel));
-                    }
-                });
-        ChannelFuture f = b.connect(hostAndPort[0], hostAndPort.length > 1 ? Integer.parseInt(hostAndPort[1]) : 80);
-        remoteChannel = f.channel();
-
-        f.addListener((ChannelFutureListener) future -> {
-            if (future.isSuccess()) {
-                remoteChannel.writeAndFlush(request);
-                contents.forEach(o -> remoteChannel.writeAndFlush(o));
-            } else {
-                clientChannel.close();
-            }
-        });
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.proxy.game.netty.remote;
 
+import com.alibaba.fastjson.JSON;
 import com.proxy.game.netty.pojo.RemotePojo;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
@@ -16,8 +17,8 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        //RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
-        RemotePojo pojo = (RemotePojo) msg;
+        RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
+        //RemotePojo pojo = (RemotePojo) msg;
         log.info("uri {} contents {}",pojo.getUri(),pojo.getContent().size());
         final Bootstrap b2 = new Bootstrap();
         b2.group(ctx.channel().eventLoop())
