@@ -59,7 +59,7 @@ public class HttpProxyConnect2Handler extends ChannelInboundHandlerAdapter {
                         outboundChannel.pipeline().addLast(new RelayHandler(ctx.channel()));
                         RelayHandler clientEndtoRemoteHandler = new RelayHandler(outboundChannel);
                         ctx.pipeline().addLast(clientEndtoRemoteHandler);
-
+                        //
                         clientEndtoRemoteHandler.channelRead(ctx, request);
                         contents.forEach(content -> {
                             try {
