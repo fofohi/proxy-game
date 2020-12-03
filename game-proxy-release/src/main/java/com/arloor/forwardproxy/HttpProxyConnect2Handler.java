@@ -65,6 +65,7 @@ public class HttpProxyConnect2Handler extends ChannelInboundHandlerAdapter {
                         for (byte[] s : pojo.getC()) {
                             outboundChannel.writeAndFlush(s);
                         }
+                        //
                         /*Relay2Handler clientEndtoRemoteHandler = new Relay2Handler(outboundChannel);
                         ctx.pipeline().addLast(clientEndtoRemoteHandler);
 
