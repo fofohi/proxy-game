@@ -1,11 +1,15 @@
 package com.arloor.forwardproxy;
 
+import com.alibaba.fastjson.JSON;
 import com.arloor.forwardproxy.util.SocksServerUtils;
+import com.arloor.forwardproxy.vo.RemotePojo;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpRequestEncoder;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,14 +71,29 @@ public final class RelayHandler extends ChannelInboundHandlerAdapter {
         }
 
         if (relayChannel.isActive()) {
-            relayChannel.writeAndFlush(msg).addListener(future -> {
-                if (!future.isSuccess()) {
+            if(msg instanceof RemotePojo){
+                relayChannel.pipeline().remove(HttpRequestEncoder.class);
+                relayChannel.writeAndFlush(Unpooled.wrappedBuffer(JSON.toJSONString(msg).getBytes())).addListener(future -> {
+                    if (!future.isSuccess()) {
 //                    System.out.println("FAILED "+ctx.channel().remoteAddress()+"  >>>>>  "+relayChannel.remoteAddress()+" "+msg.getClass().getSimpleName());
-                    log.error("relay error!", future.cause());
-                } else {
+                        log.error("relay error!", future.cause());
+                    } else {
 //                    System.out.println("SUCCESS "+ctx.channel().remoteAddress()+"  >>>>>>>  "+relayChannel.remoteAddress()+" "+msg.getClass().getSimpleName());
-                }
-            });
+                    }
+                });
+            }else{
+                relayChannel.writeAndFlush(msg).addListener(future -> {
+                    if (!future.isSuccess()) {
+//                    System.out.println("FAILED "+ctx.channel().remoteAddress()+"  >>>>>  "+relayChannel.remoteAddress()+" "+msg.getClass().getSimpleName());
+                        log.error("relay error!", future.cause());
+                    } else {
+//                    System.out.println("SUCCESS "+ctx.channel().remoteAddress()+"  >>>>>>>  "+relayChannel.remoteAddress()+" "+msg.getClass().getSimpleName());
+                    }
+                });
+            }
+
+
+
         } else {
             ReferenceCountUtil.release(msg);
         }
