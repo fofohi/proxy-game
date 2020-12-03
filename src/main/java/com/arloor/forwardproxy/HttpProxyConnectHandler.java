@@ -1,0 +1,241 @@
+package com.arloor.forwardproxy;
+
+import com.arloor.forwardproxy.util.OsHelper;
+import com.arloor.forwardproxy.util.SocksServerUtils;
+import com.arloor.forwardproxy.vo.Config;
+import com.arloor.forwardproxy.vo.RemotePojo;
+import com.arloor.forwardproxy.web.Dispatcher;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.*;
+import io.netty.handler.codec.http.*;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
+import io.netty.util.CharsetUtil;
+import io.netty.util.ReferenceCountUtil;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.FutureListener;
+import io.netty.util.concurrent.Promise;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED;
+
+public class HttpProxyConnectHandler extends SimpleChannelInboundHandler<HttpObject> {
+    private static final Logger log = LoggerFactory.getLogger(HttpProxyConnectHandler.class);
+    private final Map<String, String> auths;
+    public HttpProxyConnectHandler(Map<String, String> auths) {
+        this.auths = auths;
+    }
+
+    private final Bootstrap b = new Bootstrap();
+
+    private String host;
+    private int port;
+    private HttpRequest request;
+    private ArrayList<HttpContent> contents = new ArrayList<>();
+
+    @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) {
+        ctx.flush();
+    }
+
+    @Override
+    public void channelRead0(final ChannelHandlerContext ctx, HttpObject msg) {
+        if (msg instanceof HttpRequest) {
+            request = (HttpRequest) msg;
+            setHostPort(ctx);
+        } else {
+            //SimpleChannelInboundHandler会将HttpContent中的bytebuf Release，但是这个还会转给relayHandler，所以需要在这里预先retain
+            ((HttpContent) msg).content().retain();
+            contents.add((HttpContent) msg);
+            //一个完整的Http请求被收到，开始处理该请求
+            if (msg instanceof LastHttpContent) {
+                String clientHostname = ((InetSocketAddress) ctx.channel().remoteAddress()).getAddress().getHostAddress();
+
+                if (request.uri().startsWith("/")) {
+                    Dispatcher.handle(request, ctx);
+                    // 这里需要将content全部release
+                    contents.forEach(ReferenceCountUtil::release);
+                    return;
+                }
+
+                //2. 检验auth
+                String basicAuth = request.headers().get("Proxy-Authorization");
+                String userName = getUserName(basicAuth, auths);
+                if (auths != null && auths.size() != 0) {
+                    if (basicAuth == null || !auths.containsKey(basicAuth)) {
+                        log.warn(clientHostname + " " + request.method() + " " + request.uri() + "  {" + host + "} wrong_auth:{" + basicAuth + "}");
+                        // 这里需要将content全部release
+                        contents.forEach(ReferenceCountUtil::release);
+                        DefaultHttpResponse responseAuthRequired;
+                        if (Config.ask4Authcate && !request.method().equals(HttpMethod.OPTIONS) && !request.method().equals(HttpMethod.HEAD)) {
+                            responseAuthRequired = new DefaultHttpResponse(request.protocolVersion(), PROXY_AUTHENTICATION_REQUIRED);
+                            responseAuthRequired.headers().add("Proxy-Authenticate", "Basic realm=\"netty forwardproxy\"");
+                        } else {
+                            responseAuthRequired = new DefaultHttpResponse(request.protocolVersion(), INTERNAL_SERVER_ERROR);
+                        }
+                        ctx.channel().writeAndFlush(responseAuthRequired);
+                        SocksServerUtils.closeOnFlush(ctx.channel());
+                        return;
+                    }
+                }
+
+                Promise<Channel> promise = ctx.executor().newPromise();
+                if (request.method().equals(HttpMethod.CONNECT)) {
+                    promise.addListener(
+                            (FutureListener<Channel>) future -> {
+                                final Channel outboundChannel = future.getNow();
+                                if (future.isSuccess()) {
+                                    ChannelFuture responseFuture = ctx.channel().writeAndFlush(
+                                            new DefaultHttpResponse(request.protocolVersion(), new HttpResponseStatus(200, "Connection Established")));
+                                    responseFuture.addListener(new ChannelFutureListener() {
+                                        @Override
+                                        public void operationComplete(ChannelFuture channelFuture) {
+                                            if (channelFuture.isSuccess()) {
+                                                ctx.pipeline().remove(HttpRequestDecoder.class);
+                                                ctx.pipeline().remove(HttpResponseEncoder.class);
+                                                ctx.pipeline().remove(HttpServerExpectContinueHandler.class);
+                                                ctx.pipeline().remove(HttpProxyConnectHandler.class);
+                                                outboundChannel.pipeline().addLast(new RelayHandler(ctx.channel()));
+                                                ctx.pipeline().addLast(new RelayHandler(outboundChannel));
+//                                                    ctx.channel().config().setAutoRead(true);
+                                            } else {
+                                                log.info("reply tunnel established Failed: " + ctx.channel().remoteAddress() + " " + request.method() + " " + request.uri());
+                                                SocksServerUtils.closeOnFlush(ctx.channel());
+                                                SocksServerUtils.closeOnFlush(outboundChannel);
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    ctx.channel().writeAndFlush(
+                                            new DefaultHttpResponse(request.protocolVersion(), INTERNAL_SERVER_ERROR)
+                                    );
+                                    SocksServerUtils.closeOnFlush(ctx.channel());
+                                }
+                            });
+                    // 4.连接目标网站
+                    final Channel inboundChannel = ctx.channel();
+                    b.group(inboundChannel.eventLoop())
+                            .channel(OsHelper.socketChannelClazz())
+                            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+                            .option(ChannelOption.SO_KEEPALIVE, true)
+                            .handler(new LoggingHandler(LogLevel.INFO))
+                            .handler(new DirectClientHandler(promise));
+
+                    b.connect(host,port).addListener((ChannelFutureListener) future -> {
+                        if (future.isSuccess()) {
+                            log.info("connect host {} port {}",host,port);
+                        } else {
+                            ctx.channel().writeAndFlush(
+                                    new DefaultHttpResponse(request.protocolVersion(), INTERNAL_SERVER_ERROR)
+                            );
+                            SocksServerUtils.closeOnFlush(ctx.channel());
+                        }
+                    });
+
+                } else {
+                    promise.addListener(
+                            (FutureListener<Channel>) future -> {
+                                final Channel outboundChannel = future.getNow();
+                                if (future.isSuccess()) {
+                                    ctx.pipeline().remove(HttpProxyConnectHandler.this);
+                                    ctx.pipeline().remove(HttpResponseEncoder.class);
+                                    outboundChannel.pipeline().addLast(new HttpRequestEncoder());
+                                    outboundChannel.pipeline().addLast(new RelayHandler(ctx.channel()));
+                                    RelayHandler clientEndtoRemoteHandler = new RelayHandler(outboundChannel);
+                                    ctx.pipeline().addLast(clientEndtoRemoteHandler);
+                                    RemotePojo remotePojo = new RemotePojo();
+                                    remotePojo.setUri(request.uri());
+
+                                    contents.forEach(o->{
+                                        remotePojo.getContent().add(o.content().toString(CharsetUtil.UTF_8));
+                                    });
+
+                                    remotePojo.setMethod(request.method().name());
+                                    remotePojo.setHttpVersion(request.protocolVersion().protocolName());
+                                    HashMap<String, String> headerMap = new HashMap<>();
+                                    List<Map.Entry<String, String>> entries = request.headers().entries();
+                                    for (Map.Entry<String, String> entry : entries) {
+                                        headerMap.put(entry.getKey(),entry.getValue());
+                                    }
+                                    remotePojo.setHeaders(headerMap);
+                                    ctx.pipeline().addLast(new KryoMsgEncoder());
+                                    //clientEndtoRemoteHandler.channelRead(ctx, request);
+                                    contents.forEach(content -> {
+                                        try {
+                                            clientEndtoRemoteHandler.channelRead(ctx, content);
+                                        } catch (Exception e) {
+                                            log.error("处理非CONNECT方法的代理请求失败！", e);
+                                        }
+                                    });
+                                } else {
+                                    ctx.channel().writeAndFlush(
+                                            new DefaultHttpResponse(request.protocolVersion(), INTERNAL_SERVER_ERROR)
+                                    );
+                                    SocksServerUtils.closeOnFlush(ctx.channel());
+                                }
+                            });
+                    // 4.连接目标网站
+                    final Channel inboundChannel = ctx.channel();
+                    b.group(inboundChannel.eventLoop())
+                            .channel(OsHelper.socketChannelClazz())
+                            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+                            .option(ChannelOption.SO_KEEPALIVE, true)
+                            .handler(new LoggingHandler(LogLevel.INFO))
+                            .handler(new DirectClientHandler(promise));
+
+                    b.connect(host,port).addListener((ChannelFutureListener) future -> {
+                        if (future.isSuccess()) {
+                            log.info("connect host {} port {}",host,port);
+                        } else {
+                            ctx.channel().writeAndFlush(
+                                    new DefaultHttpResponse(request.protocolVersion(), INTERNAL_SERVER_ERROR)
+                            );
+                            SocksServerUtils.closeOnFlush(ctx.channel());
+                        }
+                    });
+                }
+
+
+
+            }
+        }
+    }
+
+    private String getUserName(String basicAuth, Map<String, String> auths) {
+        String userName = "";
+        if (basicAuth != null && basicAuth.length() != 0) {
+            String raw = auths.get(basicAuth);
+            if (raw != null && raw.length() != 0) {
+                userName = raw.split(":")[0];
+            }
+        }
+        return userName;
+    }
+
+    private void setHostPort(ChannelHandlerContext ctx) {
+        String hostAndPortStr = request.headers().get("Host");
+        if (hostAndPortStr == null) {
+            SocksServerUtils.closeOnFlush(ctx.channel());
+        }
+        String[] hostPortArray = hostAndPortStr.split(":");
+        host = hostPortArray[0];
+        String portStr = hostPortArray.length == 2 ? hostPortArray[1] : "80";
+        port = Integer.parseInt(portStr);
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        cause.printStackTrace();
+        String clientHostname = ((InetSocketAddress) ctx.channel().remoteAddress()).getHostString();
+        log.info("[EXCEPTION][" + clientHostname + "] " + cause.getMessage());
+        ctx.close();
+    }
+}
