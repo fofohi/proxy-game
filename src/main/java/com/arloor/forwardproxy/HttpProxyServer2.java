@@ -18,9 +18,9 @@ import java.util.Properties;
  * An HTTP server that sends back the content of the received HTTP request
  * in a pretty plaintext form.
  */
-public final class HttpProxyServer {
+public final class HttpProxyServer2 {
 
-    private static final Logger log = LoggerFactory.getLogger(HttpProxyServer.class);
+    private static final Logger log = LoggerFactory.getLogger(HttpProxyServer2.class);
 
     public static void main(String[] args) throws Exception {
 //        NetStats.start();
@@ -33,7 +33,7 @@ public final class HttpProxyServer {
         if (propertiesPath != null) {
             properties.load(new FileReader(new File(propertiesPath)));
         } else {
-            properties.load(HttpProxyServer.class.getClassLoader().getResourceAsStream("proxy.properties"));
+            properties.load(HttpProxyServer2.class.getClassLoader().getResourceAsStream("proxy.properties"));
         }
 
         Config config = Config.parse(properties);
@@ -80,9 +80,9 @@ public final class HttpProxyServer {
             b.option(ChannelOption.SO_BACKLOG, 10240);
             b.group(bossGroup, workerGroup)
                     .channel(OsHelper.serverSocketChannelClazz())
-                    .childHandler(new HttpProxyServerInitializer(http));
+                    .childHandler(new HttpProxyServer2Initializer(http));
 
-            Channel httpChannel = b.bind(9078).sync().channel();
+            Channel httpChannel = b.bind(9077).sync().channel();
             log.info("http proxy@ port=" + http.getPort() + " auth=" + http.needAuth());
             return httpChannel;
         } catch (Exception e) {

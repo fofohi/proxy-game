@@ -10,15 +10,20 @@ import java.util.Map;
 @Data
 public class RemotePojo implements Serializable {
 
-    private String uri;
+    /*uri*/
+    private String u;
 
-    private List<String> content = new ArrayList<>();
+    /*content*/
+    private List<String> c = new ArrayList<>();
 
-    private String httpVersion;
+    /*http version*/
+    private String hv;
 
-    private String method;
+    /*method*/
+    private String m;
 
-    private Map<String,String> headers;
+    /*header*/
+    private Map<String,String> he;
 
 
 }

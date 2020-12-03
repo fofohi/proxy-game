@@ -3,6 +3,7 @@ package com.arloor.forwardproxy;
 import com.alibaba.fastjson.JSON;
 import com.arloor.forwardproxy.util.SocksServerUtils;
 import com.arloor.forwardproxy.vo.RemotePojo;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -73,12 +74,15 @@ public final class RelayHandler extends ChannelInboundHandlerAdapter {
         if (relayChannel.isActive()) {
             if(msg instanceof RemotePojo){
                 relayChannel.pipeline().remove(HttpRequestEncoder.class);
-                relayChannel.writeAndFlush(Unpooled.wrappedBuffer(JSON.toJSONString(msg).getBytes())).addListener(future -> {
+                byte[] body = JSON.toJSONString(msg).getBytes();
+                int l = body.length;
+                ByteBuf b = Unpooled.buffer();
+                b.writeInt(l);
+                b.writeBytes(body);
+                relayChannel.writeAndFlush(b).addListener(future -> {
                     if (!future.isSuccess()) {
-//                    System.out.println("FAILED "+ctx.channel().remoteAddress()+"  >>>>>  "+relayChannel.remoteAddress()+" "+msg.getClass().getSimpleName());
                         log.error("relay error!", future.cause());
                     } else {
-//                    System.out.println("SUCCESS "+ctx.channel().remoteAddress()+"  >>>>>>>  "+relayChannel.remoteAddress()+" "+msg.getClass().getSimpleName());
                     }
                 });
             }else{
