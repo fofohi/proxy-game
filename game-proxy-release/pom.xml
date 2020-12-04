@@ -9,7 +9,7 @@
     <version>1.0</version>
     <properties>
         <netty.version>4.1.53.Final</netty.version>
-        <mainClass>com.arloor.forwardproxy.HttpProxyServer</mainClass>
+        <mainClass>com.arloor.forwardproxy.HttpProxyServer2</mainClass>
     </properties>
 
 

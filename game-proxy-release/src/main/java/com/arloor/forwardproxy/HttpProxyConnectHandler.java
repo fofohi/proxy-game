@@ -154,7 +154,7 @@ public class HttpProxyConnectHandler extends ChannelInboundHandlerAdapter {
                             .option(ChannelOption.SO_KEEPALIVE, true)
                             .handler(new LoggingHandler(LogLevel.INFO))
                             .handler(new com.arloor.forwardproxy.DirectClientHandler(promise));
-                    b.connect("localhost",9077).addListener((ChannelFutureListener) future -> {
+                    b.connect("42.192.169.194",10189).addListener((ChannelFutureListener) future -> {
                         if (future.isSuccess()) {
                             log.info("connect host {} port {}","localhost",9077);
                         } else {

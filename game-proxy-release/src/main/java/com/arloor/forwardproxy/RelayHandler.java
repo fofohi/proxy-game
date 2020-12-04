@@ -70,6 +70,7 @@ public final class RelayHandler extends ChannelInboundHandlerAdapter {
         }
 
         if (relayChannel.isActive()) {
+            //往服务器写
             if(msg instanceof RemotePojo){
                 relayChannel.pipeline().remove(HttpRequestEncoder.class);
                 byte[] body = JSON.toJSONString(msg).getBytes();
@@ -93,9 +94,6 @@ public final class RelayHandler extends ChannelInboundHandlerAdapter {
                     }
                 });
             }
-
-
-
         } else {
             ReferenceCountUtil.release(msg);
         }

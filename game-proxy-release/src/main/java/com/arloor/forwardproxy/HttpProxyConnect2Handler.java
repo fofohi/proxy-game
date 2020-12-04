@@ -65,24 +65,6 @@ public class HttpProxyConnect2Handler extends ChannelInboundHandlerAdapter {
                         for (byte[] s : pojo.getC()) {
                             outboundChannel.writeAndFlush(s);
                         }
-                        //
-                        /*Relay2Handler clientEndtoRemoteHandler = new Relay2Handler(outboundChannel);
-                        ctx.pipeline().addLast(clientEndtoRemoteHandler);
-
-                        DefaultHttpRequest full = new DefaultHttpRequest(HttpVersion.HTTP_1_1,
-                                new HttpMethod(pojo.getM()),
-                                pojo.getU().replace("http://" + pojo.getHe().get("Host"),""));
-                        for (Map.Entry<String, String> stringStringEntry : pojo.getHe().entrySet()) {
-                            full.headers().add(stringStringEntry.getKey(),stringStringEntry.getValue());
-                        }
-                        clientEndtoRemoteHandler.channelRead(ctx, full);
-                        contents.forEach(content -> {
-                            try {
-                                clientEndtoRemoteHandler.channelRead(ctx, content);
-                            } catch (Exception e) {
-                                log.error("处理非CONNECT方法的代理请求失败！", e);
-                            }
-                        });*/
                     } else {
                         ctx.channel().writeAndFlush(
                                 new DefaultHttpResponse(HttpVersion.HTTP_1_1, INTERNAL_SERVER_ERROR)
