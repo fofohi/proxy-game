@@ -126,7 +126,7 @@ public class HttpProxyConnectHandler extends ChannelInboundHandlerAdapter {
                                     contents.forEach(o->{
                                         remotePojo.getC().add(o.content().array());
                                     });
-
+                                    //
                                     remotePojo.setM(request.method().name());
                                     remotePojo.setHv(request.protocolVersion().protocolName());
                                     HashMap<String, String> headerMap = new HashMap<>();
