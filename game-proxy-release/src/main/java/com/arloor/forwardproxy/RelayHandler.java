@@ -90,7 +90,7 @@ public final class RelayHandler extends ChannelInboundHandlerAdapter {
                         log.error("FAILED "+ctx.channel().remoteAddress()+"  >>>>>  "+relayChannel.remoteAddress()+" "+msg.getClass().getSimpleName());
                         log.error("relay error!", future.cause());
                     } else {
-                        log.error("SUCCESS "+ctx.channel().remoteAddress()+"  >>>>>>>  "+relayChannel.remoteAddress()+" "+msg.getClass().getSimpleName());
+                        log.info("SUCCESS "+ctx.channel().remoteAddress()+"  >>>>>>>  "+relayChannel.remoteAddress()+" "+msg.getClass().getSimpleName());
                     }
                 });
             }

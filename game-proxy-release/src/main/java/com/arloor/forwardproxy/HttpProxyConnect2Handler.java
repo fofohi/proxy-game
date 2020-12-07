@@ -5,6 +5,8 @@ import com.arloor.forwardproxy.util.OsHelper;
 import com.arloor.forwardproxy.util.SocksServerUtils;
 import com.arloor.forwardproxy.vo.RemotePojo;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.logging.LogLevel;
@@ -14,7 +16,6 @@ import io.netty.util.concurrent.Promise;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Map;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
@@ -47,7 +48,12 @@ public class HttpProxyConnect2Handler extends ChannelInboundHandlerAdapter {
                     final Channel outboundChannel = future.getNow();
                     if (future.isSuccess()) {
                         //ctx本地和服务器的连接
-                        ctx.pipeline().remove(HttpProxyConnect2Handler.this);
+
+                        try {
+                            ctx.pipeline().remove(HttpProxyConnect2Handler.this);
+                        }catch (Exception e){
+
+                        }
 
                         //服务器和目标服务器的连接
                         outboundChannel.pipeline().addLast(new HttpRequestEncoder());
@@ -55,16 +61,17 @@ public class HttpProxyConnect2Handler extends ChannelInboundHandlerAdapter {
 
                         //ctx ===> 目标服务器
                         //需要 这里拼装http请求
-                        DefaultHttpRequest full = new DefaultHttpRequest(HttpVersion.HTTP_1_1,
+                        ByteBuf bf = Unpooled.buffer();
+                        for (byte[] s : pojo.getC()) {
+                            bf.writeBytes(s);
+                        }
+                        DefaultFullHttpRequest full = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
                                 new HttpMethod(pojo.getM()),
-                                pojo.getU().replace("http://" + pojo.getHe().get("Host"),""));
+                                pojo.getU().replace("http://" + pojo.getHe().get("Host"),""),bf);
                         for (Map.Entry<String, String> stringStringEntry : pojo.getHe().entrySet()) {
                             full.headers().add(stringStringEntry.getKey(),stringStringEntry.getValue());
                         }
                         outboundChannel.writeAndFlush(full);
-                        for (byte[] s : pojo.getC()) {
-                            outboundChannel.writeAndFlush(s);
-                        }
                     } else {
                         ctx.channel().writeAndFlush(
                                 new DefaultHttpResponse(HttpVersion.HTTP_1_1, INTERNAL_SERVER_ERROR)

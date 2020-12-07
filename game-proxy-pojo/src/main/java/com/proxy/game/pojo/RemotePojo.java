@@ -3,6 +3,8 @@ package com.proxy.game.pojo;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -10,7 +12,7 @@ public class RemotePojo implements Serializable {
 
     private String uri;
 
-    private String content;
+    private List<byte[]> content = new ArrayList<>();
 
     private String httpVersion;
 

@@ -1,20 +1,22 @@
 package com.proxy.game.client.handler;
 
+
 import com.proxy.game.pojo.RemotePojo;
+import com.proxy.game.pojo.context.HandlerContext;
+import com.proxy.game.pojo.util.MsgEncoder;
 import com.proxy.game.pojo.util.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.util.CharsetUtil;
+
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.http.*;
+
+import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.Promise;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 浏览器到本地代理的入口
@@ -22,65 +24,58 @@ import java.util.Map;
 @Slf4j
 public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
 
+    private Channel localChannel;
+
+    private Channel remoteChannel;
+
+    private static NioEventLoopGroup thisGroup = new NioEventLoopGroup(2);
+
     @Override
-    public void channelRead(ChannelHandlerContext browserToLocalServerChannel, Object msg){
-        log.info("msg {}",msg);
+    public void channelRead(ChannelHandlerContext browserAndServerChannel, Object msg){
         if(msg instanceof FullHttpRequest){
-
-            FullHttpRequest fMsg = (FullHttpRequest) msg;
-            if(fMsg.method().equals(HttpMethod.CONNECT)){
-                SocksServerUtils.closeOnFlush(browserToLocalServerChannel.channel());
+            localChannel = browserAndServerChannel.channel();
+            log.info("full http request {}",msg);
+            final FullHttpRequest fullMsg = (FullHttpRequest) msg;
+            if(fullMsg.method().equals(HttpMethod.CONNECT)){
+                SocksServerUtils.closeOnFlush(browserAndServerChannel.channel());
             }else{
-                Promise<Channel> promise = browserToLocalServerChannel.executor().newPromise();
-                promise.addListener(
-                        (FutureListener<Channel>) future -> {
-                            Channel localServerToRemoteChannel = future.getNow();
-                            if (future.isSuccess()) {
-                                RemotePojo remotePojo = new RemotePojo();
+                final Promise<Channel> browserAndServerPromise = browserAndServerChannel.executor().newPromise();
+                browserAndServerPromise.addListener(new FutureListener<Channel>() {
+                    @Override
+                    public void operationComplete(Future<Channel> future) {
+                        RemotePojo remotePojo = new RemotePojo();
+                        future.getNow().writeAndFlush(remotePojo);
+                        log.info("success {}",Thread.currentThread().getName());
+                    }
+                });
 
-
-                                remotePojo.setUri(fMsg.uri());
-                                remotePojo.setContent(fMsg.content().toString(CharsetUtil.UTF_8));
-                                remotePojo.setMethod(fMsg.method().name());
-                                remotePojo.setHttpVersion(fMsg.protocolVersion().protocolName());
-                                HashMap<String, String> headerMap = new HashMap<>();
-                                List<Map.Entry<String, String>> entries = fMsg.headers().entries();
-                                for (Map.Entry<String, String> entry : entries) {
-                                    headerMap.put(entry.getKey(),entry.getValue());
-                                }
-                                remotePojo.setHeaders(headerMap);
-                                //往服务器写解析的http请求
-                                //localServerToRemoteChannel.pipeline().addLast("k1",new KryoMsgEncoder());
-                                //localServerToRemoteChannel.pipeline().addLast(new ToClientDecoder());
-                                //localServerToRemoteChannel.pipeline().addLast(new PraByteHandler(browserToLocalServerChannel));
-                                //localServerToRemoteChannel.writeAndFlush(remotePojo);
-                            } else {
-                            /*
-                            500
-                            ctx.channel().writeAndFlush(
-                                    new DefaultHttpResponse(request.protocolVersion(), INTERNAL_SERVER_ERROR)
-                            );*/
-                                //SocksServerUtils.closeOnFlush(browserToLocalServerChannel.channel());
-                            }//
-                        });
-                final Bootstrap b = new Bootstrap();
-                //localServerToIplcChannel
-                b.group(browserToLocalServerChannel.channel().eventLoop())
-                        .channel(browserToLocalServerChannel.channel().getClass())
-                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000)
+                log.info("success {}",Thread.currentThread().getName());
+                //本地server连接远程server
+                Bootstrap b = new Bootstrap();
+                b.group(thisGroup)
+                        .channel(localChannel.getClass())
                         .option(ChannelOption.SO_KEEPALIVE, true)
-                        .handler(new ChannelInitializer<SocketChannel>() {
+                        .handler(new ChannelInitializer<NioSocketChannel>() {
                             @Override
-                            protected void initChannel(SocketChannel ch) {
-                       //         ch.pipeline().addLast(new PraHttpProxyHandler(promise));
+                            protected void initChannel(NioSocketChannel ch) {
+                                ch.pipeline().addLast(HandlerContext.PROXY_MSG_ENCODER,new MsgEncoder());
                             }
-                        })
-                ;
-                /**
-                 * todo 考虑两个入口
-                 */
-                b.connect("localhost",9077);
+                        });
+                //todo config remote server ip
+                //localServerAndRemoteServerChannel
+                b.connect("localhost",9077).addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) {
+                        log.info("connect localhost 9077 success {}",Thread.currentThread().getName());
+                        browserAndServerPromise.setSuccess(future.channel());
+                    }
+                });
             }
         }
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error("exception {}",cause.getMessage());
     }
 }

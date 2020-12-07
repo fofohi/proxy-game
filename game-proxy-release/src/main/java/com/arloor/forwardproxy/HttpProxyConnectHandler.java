@@ -6,6 +6,8 @@ import com.arloor.forwardproxy.vo.Config;
 import com.arloor.forwardproxy.vo.RemotePojo;
 import com.arloor.forwardproxy.web.Dispatcher;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.logging.LogLevel;
@@ -47,7 +49,6 @@ public class HttpProxyConnectHandler extends ChannelInboundHandlerAdapter {
             setHostPort(ctx);
         } else {
             //SimpleChannelInboundHandler会将HttpContent中的bytebuf Release，但是这个还会转给relayHandler，所以需要在这里预先retain
-            ((HttpContent) msg).content().retain();
             contents.add((HttpContent) msg);
             //一个完整的Http请求被收到，开始处理该请求
             if (msg instanceof LastHttpContent) {
@@ -75,7 +76,6 @@ public class HttpProxyConnectHandler extends ChannelInboundHandlerAdapter {
                                             ctx.pipeline().remove(HttpProxyConnectHandler.class);
                                             outboundChannel.pipeline().addLast(new RelayHandler(ctx.channel()));
                                             ctx.pipeline().addLast(new RelayHandler(outboundChannel));
-//                                                    ctx.channel().config().setAutoRead(true);
                                         } else {
                                             log.info("reply tunnel established Failed: " + ctx.channel().remoteAddress() + " " + request.method() + " " + request.uri());
                                             SocksServerUtils.closeOnFlush(ctx.channel());
@@ -124,7 +124,10 @@ public class HttpProxyConnectHandler extends ChannelInboundHandlerAdapter {
                                     remotePojo.setU(request.uri());
 
                                     contents.forEach(o->{
-                                        remotePojo.getC().add(o.content().array());
+                                        ByteBuf bf = Unpooled.buffer();
+                                        bf.writeBytes(o.content());
+                                        remotePojo.getC().add(bf.array());
+                                        bf.release();
                                     });
                                     //
                                     remotePojo.setM(request.method().name());
@@ -154,7 +157,7 @@ public class HttpProxyConnectHandler extends ChannelInboundHandlerAdapter {
                             .option(ChannelOption.SO_KEEPALIVE, true)
                             .handler(new LoggingHandler(LogLevel.INFO))
                             .handler(new com.arloor.forwardproxy.DirectClientHandler(promise));
-                    b.connect("42.192.169.194",10189).addListener((ChannelFutureListener) future -> {
+                    b.connect("47.101.39.121",29077).addListener((ChannelFutureListener) future -> {
                         if (future.isSuccess()) {
                             log.info("connect host {} port {}","localhost",9077);
                         } else {

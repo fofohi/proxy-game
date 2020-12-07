@@ -3,6 +3,7 @@ package com.proxy.game.netty.remote;
 import com.alibaba.fastjson.JSON;
 import com.proxy.game.netty.pojo.RemotePojo;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
@@ -17,8 +18,8 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
-        //RemotePojo pojo = (RemotePojo) msg;
+        //RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
+        RemotePojo pojo = (RemotePojo) msg;
         log.info("uri {} contents {}",pojo.getUri(),pojo.getContent().size());
         final Bootstrap b2 = new Bootstrap();
         b2.group(ctx.channel().eventLoop())
@@ -43,21 +44,19 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
 
         b2.connect(hostAndPortString[0],hostAndPortString.length > 1 ? Integer.parseInt(hostAndPortString[1]) : 80).addListener((ChannelFutureListener) future -> {
             if(future.isSuccess()){
-                if(pojo.getUri().contains("443")){
-                    return;
+                ByteBuf bf = Unpooled.buffer();
+                for (byte[] s : pojo.getContent()) {
+                    System.out.println(new String(s));
+                    bf.writeBytes(s);
                 }
-
-                DefaultHttpRequest full = new DefaultHttpRequest(HttpVersion.HTTP_1_1,
+                DefaultFullHttpRequest full = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
                         new HttpMethod(pojo.getMethod()),
-                        pojo.getUri().replace("http://" + pojo.getHeaders().get("Host"),""));
+                        pojo.getUri().replace("http://" + pojo.getHeaders().get("Host"),""),bf);
                 for (Map.Entry<String, String> stringStringEntry : pojo.getHeaders().entrySet()) {
                     full.headers().add(stringStringEntry.getKey(),stringStringEntry.getValue());
                 }
                 //往真正的服务器写
                 future.channel().writeAndFlush(full);
-                for (byte[] bytes : pojo.getContent()) {
-                    future.channel().writeAndFlush(Unpooled.wrappedBuffer(bytes));
-                }
             }
         });
     }

@@ -1,69 +1,48 @@
 package com.proxy.game.server;
 
+import com.proxy.game.pojo.context.HandlerContext;
+import com.proxy.game.pojo.util.MsgDecoder;
 import com.proxy.game.pojo.util.OsHelper;
+import com.proxy.game.pojo.util.SocksServerUtils;
+import com.proxy.game.server.handler.ProxyRemoteToLocalHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ProxyRemoteServer {
 
     public static void main(String[] args) {
+        Channel httpChannel = null;
+
         try {
             EventLoopGroup bossGroup = OsHelper.buildEventLoopGroup(1);
             EventLoopGroup workerGroup = OsHelper.buildEventLoopGroup(0);
             // Configure the server.
             ServerBootstrap b = new ServerBootstrap();
             b.option(ChannelOption.SO_BACKLOG, 10240);
-            b.option(ChannelOption.SO_KEEPALIVE,true);
             b.group(bossGroup, workerGroup)
                     .channel(OsHelper.serverSocketChannelClazz())
+                    .childOption(ChannelOption.SO_KEEPALIVE,true)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) {
-                            //ch.pipeline().addLast("httpCoder",new HttpServerCodec());
-                            //ch.pipeline().addLast("httpAggregator",new HttpObjectAggregator(1024000 << 2));
-                            //ch.pipeline().addLast("remoteKryo1",new KryoMsgDecoder());
-                            //ch.pipeline().addLast("remoteHandler",new PraUseRemoteHandler());
-                            /**
-                             *     test4 out find pre so test4 is first then find pre is default
-                             *     then skip to test3 find it's pre is test4 then invoke test4
-                             *
-                             *     default find default's next test1, then run test1,
-                             *      ` then find test1's next test2,then run test2
-                             *
-                             *     outbound when add first a then b , run as a then b
-                             *              when add last a then b , run as b then a
-                             *     inbound when add first a then b , run as b then a
-                             *             when add last a then b , run as a then b
-                             *     if use fits logic
-                             *     use inbound add last
-                             *     use outbound add first as wish
-                             *
-                             *     outbound is find pre
-                             *     inbound is find next
-                             *
-                             *
-                             *      server 负责进行request 解码and response编码
-                             *      HttpServerCodec 里面组合了HttpResponseEncoder和HttpRequestDecoder
-                             *
-                             *      cline 负责进行request变码 and response 解码
-                             *      HttpClientCodec 里面组合了HttpRequestEncoder和HttpResponseDecoder
-                             *
-                             *
-                             *
-                             *
-                             */
-
+                            ch.pipeline().addLast(HandlerContext.PROXY_MSG_DECODER,new MsgDecoder());
+                            ch.pipeline().addLast(HandlerContext.PROXY_REMOTE_TO_LOCAL_HANDLER,new ProxyRemoteToLocalHandler());
                         }
                     })
             ;
-            Channel httpChannel = b.bind(9077).sync().channel();
+            httpChannel = b.bind(9077).sync().channel();
             httpChannel.closeFuture().sync();
         } catch (Exception e) {
-            e.printStackTrace();
+            if(httpChannel != null){
+                SocksServerUtils.closeOnFlush(httpChannel);
+            }
+            log.error("error {}",e.getMessage());
         }
     }
 }

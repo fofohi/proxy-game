@@ -18,6 +18,7 @@ package com.proxy.game.pojo.util;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.handler.codec.http.HttpHeaders;
 
 public final class SocksServerUtils {
 
@@ -30,5 +31,9 @@ public final class SocksServerUtils {
         }
     }
 
-    private SocksServerUtils() { }
+    public static String[] getHost(HttpHeaders httpHeaders){
+        String hostAndPortString = httpHeaders.get("Host");
+        String[] hostAndPort = hostAndPortString.split(":");
+        return hostAndPort.length > 0 ? hostAndPort : null;
+    }
 }

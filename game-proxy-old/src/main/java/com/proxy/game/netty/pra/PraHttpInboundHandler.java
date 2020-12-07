@@ -4,6 +4,7 @@ import com.proxy.game.netty.pojo.KryoMsgEncoder;
 import com.proxy.game.netty.pojo.RemotePojo;
 import com.proxy.game.ssl.TestSsl2Handler;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
@@ -69,12 +70,13 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
                                 ch.pipeline().addLast(new TestSsl2Handler(clientChannel));
                             }
                         });
-                ChannelFuture f = b.connect(hostAndPort[0], hostAndPort.length > 1 ? Integer.parseInt(hostAndPort[1]) : 80);
+                ChannelFuture f = b.connect("localhost",9077);/*hostAndPort[0], hostAndPort.length > 1 ? Integer.parseInt(hostAndPort[1]) : 80);*/
                 remoteChannel = f.channel();
 
                 f.addListener((ChannelFutureListener) future -> {
                     if (future.isSuccess()) {
                         clientChannel.config().setAutoRead(true);
+                        remoteChannel.pipeline().addLast(new PraByteHandler(browserAndServer));
                         remoteChannel.writeAndFlush(request);
                         contents.forEach(o -> remoteChannel.writeAndFlush(o));
                     } else {
@@ -90,13 +92,12 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
                             if (future.isSuccess()) {
                                 RemotePojo remotePojo = new RemotePojo();
                                 remotePojo.setUri(request.uri());
-                                List<byte[]> cs = new ArrayList<>() ;
-                                for (HttpContent content : contents) {
-                                    if(content.content().hasArray()){
-                                        cs.add(content.content().array());
-                                    }
-                                }
-                                remotePojo.setContent(cs);
+                                contents.forEach(o->{
+                                    ByteBuf bf = Unpooled.buffer();
+                                    bf.writeBytes(o.content());
+                                    remotePojo.getContent().add(bf.array());
+                                    bf.release();
+                                });
                                 remotePojo.setMethod(request.method().name());
                                 remotePojo.setHttpVersion(request.protocolVersion().protocolName());
                                 HashMap<String, String> headerMap = new HashMap<>();
@@ -125,7 +126,7 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
                             }
                         })
                 ;
-                b.connect("162.14.8.228",19077).addListener((ChannelFutureListener) future -> {
+                b.connect("47.101.39.121",29077).addListener((ChannelFutureListener) future -> {
 
 
                 });
