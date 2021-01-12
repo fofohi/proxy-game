@@ -10,7 +10,8 @@ import java.util.List;
 
 public class MsgDecoder extends ByteToMessageDecoder {
     private static final int HEAD_LENGTH = 4;
-
+    //a 7
+    //d 9
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         if (in.readableBytes() < HEAD_LENGTH) {
@@ -35,4 +36,6 @@ public class MsgDecoder extends ByteToMessageDecoder {
         String s = ProtostuffUtils.deserialize(body, String.class);
         out.add(JSON.parseObject(s,RemotePojo.class));
     }
+
+
 }

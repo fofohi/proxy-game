@@ -27,7 +27,7 @@ public class ProxyLocalClientServer {
         Channel httpChannel = null;
         try {
             EventLoopGroup bossGroup = OsHelper.buildEventLoopGroup(1);
-            EventLoopGroup workerGroup = OsHelper.buildEventLoopGroup(0);
+            EventLoopGroup workerGroup = OsHelper.buildEventLoopGroup(4);
 
             ServerBootstrap b = new ServerBootstrap();
             b.option(ChannelOption.SO_BACKLOG, 10240);

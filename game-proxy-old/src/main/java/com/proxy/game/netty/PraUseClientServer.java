@@ -26,11 +26,12 @@ public class PraUseClientServer {
 
     public static void main(String[] args) {
         try {
-            EventLoopGroup bossGroup = OsHelper.buildEventLoopGroup(1);
-            EventLoopGroup workerGroup = OsHelper.buildEventLoopGroup(0);
+            EventLoopGroup bossGroup = OsHelper.buildEventLoopGroup(2);
+            EventLoopGroup workerGroup = OsHelper.buildEventLoopGroup(4);
             // Configure the server.
             ServerBootstrap b = new ServerBootstrap();
             b.option(ChannelOption.SO_BACKLOG, 10240);
+            b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS,5000);
             b.group(bossGroup, workerGroup)
                     .channel(OsHelper.serverSocketChannelClazz())
                     .childHandler(new ChannelInitializer<SocketChannel>() {

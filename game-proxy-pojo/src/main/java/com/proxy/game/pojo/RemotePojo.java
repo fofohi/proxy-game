@@ -1,5 +1,6 @@
 package com.proxy.game.pojo;
 
+import io.netty.buffer.ByteBuf;
 import lombok.Data;
 
 import java.io.Serializable;

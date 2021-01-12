@@ -2,6 +2,7 @@ package com.proxy.game.netty.remote;
 
 import com.alibaba.fastjson.JSON;
 import com.proxy.game.netty.pojo.RemotePojo;
+import com.proxy.game.netty.pra.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -15,16 +16,30 @@ import java.util.Map;
 @Slf4j
 public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
 
+    private RemotePojo tmpPojo = null;
+
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        //RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
-        RemotePojo pojo = (RemotePojo) msg;
+        RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
+        tmpPojo = pojo;
+        //RemotePojo pojo = (RemotePojo) msg;
         log.info("uri {} contents {}",pojo.getUri(),pojo.getContent().size());
+        reconnectAndFlush(pojo,ctx);
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        super.exceptionCaught(ctx, cause);
+        reconnectAndFlush(tmpPojo,ctx);
+        SocksServerUtils.closeOnFlush(ctx.channel());
+    }
+
+    private void reconnectAndFlush(RemotePojo pojo,ChannelHandlerContext ctx){
         final Bootstrap b2 = new Bootstrap();
         b2.group(ctx.channel().eventLoop())
                 .channel(ctx.channel().getClass())
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
@@ -46,7 +61,6 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
             if(future.isSuccess()){
                 ByteBuf bf = Unpooled.buffer();
                 for (byte[] s : pojo.getContent()) {
-                    System.out.println(new String(s));
                     bf.writeBytes(s);
                 }
                 DefaultFullHttpRequest full = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
@@ -60,5 +74,4 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
             }
         });
     }
-
 }
