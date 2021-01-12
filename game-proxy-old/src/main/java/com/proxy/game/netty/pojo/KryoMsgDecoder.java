@@ -34,8 +34,8 @@ public class KryoMsgDecoder extends ByteToMessageDecoder {
         byte[] body = new byte[dataLength];
         in.readBytes(body);
         // 将bytes数组转换为我们需要的对象
-        RemotePojo s = ProtostuffUtils.deserialize(body, RemotePojo.class);
-        //String s = new String(body);
+        //RemotePojo s = ProtostuffUtils.deserialize(body, RemotePojo.class);
+        String s = new String(body);
         out.add(s);
     }
 }

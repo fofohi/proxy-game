@@ -36,6 +36,11 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
 
 
     @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error("error {}",cause.getMessage());
+    }
+
+    @Override
     public void channelRead(ChannelHandlerContext browserAndServer, Object msg){
         clientChannel = browserAndServer.channel();
 
@@ -126,10 +131,13 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
                             }
                         })
                 ;
-                b.connect("47.101.39.121",29077).addListener((ChannelFutureListener) future -> {
+                b.connect("162.14.8.228",19077).addListener((ChannelFutureListener) future -> {
 
 
                 });
+
+
+
             }
         }
     }

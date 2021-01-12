@@ -15,11 +15,13 @@ import java.util.Map;
 @Slf4j
 public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
 
+    private RemotePojo pojoTest;
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        //RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
-        RemotePojo pojo = (RemotePojo) msg;
+        RemotePojo pojo = JSON.parseObject((String) msg, RemotePojo.class);
+        this.pojoTest = pojo;
+        //RemotePojo pojo = (RemotePojo) msg;
         log.info("uri {} contents {}",pojo.getUri(),pojo.getContent().size());
         final Bootstrap b2 = new Bootstrap();
         b2.group(ctx.channel().eventLoop())
@@ -61,4 +63,10 @@ public class PraUseRemoteHandler extends ChannelInboundHandlerAdapter {
         });
     }
 
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error("error {}",cause.getMessage());
+        log.info("pojo {}",JSON.toJSONString(this.pojoTest));
+        ctx.close().syncUninterruptibly();
+    }
 }

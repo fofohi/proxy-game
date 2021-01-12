@@ -38,8 +38,6 @@ public class PraTargetHandler extends ChannelInboundHandlerAdapter {
                 headerMap.put(entry.getKey(),entry.getValue());
             }
             remotePojo.setHeaders(headerMap);
-            //toLocalClient.pipeline().addLast(new ToClientEncoder());
-
             DefaultFullHttpResponse response = new DefaultFullHttpResponse(
                     HttpVersion.HTTP_1_1,
                     fMsg.status(),
@@ -49,9 +47,6 @@ public class PraTargetHandler extends ChannelInboundHandlerAdapter {
             for (Map.Entry<String, String> entry : entries) {
                 response.headers().add(entry.getKey(),entry.getValue());
             }
-
-            log.info("PraTargetHandler {}",response.toString());
-
             toLocalClient.pipeline().addLast(new HttpResponseEncoder());
             toLocalClient.pipeline().remove("remoteKryo1");
             //写回去

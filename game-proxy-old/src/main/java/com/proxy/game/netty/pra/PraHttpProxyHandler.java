@@ -21,4 +21,9 @@ public class PraHttpProxyHandler extends ChannelInboundHandlerAdapter {
         localServerToIplcChannel.pipeline().remove(this);
         promise.setSuccess(localServerToIplcChannel.channel());
     }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error("error {}",cause.getMessage());
+    }
 }
