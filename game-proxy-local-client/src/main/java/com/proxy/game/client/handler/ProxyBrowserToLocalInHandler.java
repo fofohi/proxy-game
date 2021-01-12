@@ -19,6 +19,7 @@ import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.Promise;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,22 +72,22 @@ public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
                 log.info("success {}",Thread.currentThread().getName());
                 //本地server连接远程server
                 Bootstrap b = new Bootstrap();
-                b.group(thisGroup)
+                b.group(browserAndServerChannel.channel().eventLoop())
                         .channel(localChannel.getClass())
                         .option(ChannelOption.SO_KEEPALIVE, true)
                         .handler(new ChannelInitializer<NioSocketChannel>() {
                             @Override
                             protected void initChannel(NioSocketChannel ch) {
-                                ch.pipeline().addLast(new PraByteHandler(browserAndServerChannel));
+                                ch.pipeline().addLast(new ProxyToClientByteHandler(browserAndServerChannel));
                                 ch.pipeline().addLast(HandlerContext.PROXY_MSG_ENCODER,new MsgEncoder());
                             }
                         });
                 //todo config remote server ip
                 //localServerAndRemoteServerChannel
-                b.connect("localhost",9077).addListener(new ChannelFutureListener() {
+                b.connect("162.14.8.228",19077).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) {
-                        log.info("connect localhost 9077 success {}",Thread.currentThread().getName());
+                        log.info("connect 162.14.8.228 9077 success {}",Thread.currentThread().getName());
                         browserAndServerPromise.setSuccess(future.channel());
                     }
                 });

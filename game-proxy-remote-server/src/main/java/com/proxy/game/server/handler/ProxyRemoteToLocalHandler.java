@@ -38,7 +38,9 @@ public class ProxyRemoteToLocalHandler extends ChannelInboundHandlerAdapter {
                     if (future.isSuccess()) {
                         ByteBuf bf = Unpooled.buffer();
                         for (byte[] s : pojo.getContent()) {
-                            bf.writeBytes(s);
+                            if(s.length != 0){
+                                bf.writeBytes(s);
+                            }
                         }
                         DefaultFullHttpRequest full = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
                                 new HttpMethod(pojo.getMethod()),
@@ -67,7 +69,10 @@ public class ProxyRemoteToLocalHandler extends ChannelInboundHandlerAdapter {
         ;
         String hostAndPort = pojo.getHeaders().get("Host");
         String[] hostAndPortString = hostAndPort.split(":");
-        b2.connect(hostAndPortString[0], hostAndPortString.length > 1 ? Integer.parseInt(hostAndPortString[1]) : 80).addListener((ChannelFutureListener) future -> {
+        /*b2.connect(hostAndPortString[0], hostAndPortString.length > 1 ? Integer.parseInt(hostAndPortString[1]) : 80).addListener((ChannelFutureListener) future -> {
+            promise.setSuccess(future.channel());
+        });*/
+        b2.connect("localhost",11431).addListener((ChannelFutureListener) future -> {
             promise.setSuccess(future.channel());
         });
     }

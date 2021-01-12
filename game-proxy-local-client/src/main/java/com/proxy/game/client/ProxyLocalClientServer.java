@@ -9,7 +9,9 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpServerCodec;
@@ -27,13 +29,13 @@ public class ProxyLocalClientServer {
     public void serverStart(int port){
         Channel httpChannel = null;
         try {
-            EventLoopGroup bossGroup = OsHelper.buildEventLoopGroup(1);
-            EventLoopGroup workerGroup = OsHelper.buildEventLoopGroup(4);
+            EventLoopGroup bossGroup =  new NioEventLoopGroup(1);
+            EventLoopGroup workerGroup = new NioEventLoopGroup(4);
 
             ServerBootstrap b = new ServerBootstrap();
             b.option(ChannelOption.SO_BACKLOG, 10240);
             b.group(bossGroup, workerGroup)
-                    .channel(OsHelper.serverSocketChannelClazz())
+                    .channel(NioServerSocketChannel.class)
                     .childOption(ChannelOption.SO_KEEPALIVE,true)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override

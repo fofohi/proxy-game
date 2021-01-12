@@ -8,11 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 
 
 @Slf4j
-public class PraByteHandler extends ChannelInboundHandlerAdapter {
+public class ProxyToClientByteHandler extends ChannelInboundHandlerAdapter {
 
     private ChannelHandlerContext browserToLocalServerChannel;
 
-    public PraByteHandler(ChannelHandlerContext browserToLocalServerChannel) {
+    public ProxyToClientByteHandler(ChannelHandlerContext browserToLocalServerChannel) {
         this.browserToLocalServerChannel = browserToLocalServerChannel;
     }
 
