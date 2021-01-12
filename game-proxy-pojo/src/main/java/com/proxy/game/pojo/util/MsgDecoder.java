@@ -33,7 +33,8 @@ public class MsgDecoder extends ByteToMessageDecoder {
         byte[] body = new byte[dataLength];
         in.readBytes(body);
         // 将bytes数组转换为我们需要的对象
-        String s = ProtostuffUtils.deserialize(body, String.class);
+        //String s = ProtostuffUtils.deserialize(body, String.class);
+        String s = new String(body);
         out.add(JSON.parseObject(s,RemotePojo.class));
     }
 

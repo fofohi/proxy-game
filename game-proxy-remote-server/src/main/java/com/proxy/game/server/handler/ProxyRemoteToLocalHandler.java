@@ -1,5 +1,6 @@
 package com.proxy.game.server.handler;
 
+import com.alibaba.fastjson.JSONObject;
 import com.proxy.game.pojo.RemotePojo;
 import com.proxy.game.pojo.util.MsgDecoder;
 import com.proxy.game.pojo.util.SocksServerUtils;
@@ -46,7 +47,6 @@ public class ProxyRemoteToLocalHandler extends ChannelInboundHandlerAdapter {
                             full.headers().add(stringStringEntry.getKey(), stringStringEntry.getValue());
                         }
                         //往真正的服务器写
-
                         remoteServerToNg.writeAndFlush(full);
                     }
                 });

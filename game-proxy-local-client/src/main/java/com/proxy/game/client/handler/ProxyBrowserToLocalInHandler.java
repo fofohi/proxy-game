@@ -36,6 +36,7 @@ public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(final ChannelHandlerContext browserAndServerChannel, Object msg){
+
         if(msg instanceof FullHttpRequest){
             localChannel = browserAndServerChannel.channel();
             log.info("full http request {}",msg);
