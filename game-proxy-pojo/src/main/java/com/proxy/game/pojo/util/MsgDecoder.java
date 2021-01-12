@@ -10,7 +10,8 @@ import java.util.List;
 
 public class MsgDecoder extends ByteToMessageDecoder {
     private static final int HEAD_LENGTH = 4;
-
+    //a 7
+    //d 9
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         if (in.readableBytes() < HEAD_LENGTH) {
@@ -32,7 +33,10 @@ public class MsgDecoder extends ByteToMessageDecoder {
         byte[] body = new byte[dataLength];
         in.readBytes(body);
         // 将bytes数组转换为我们需要的对象
-        String s = ProtostuffUtils.deserialize(body, String.class);
+        //String s = ProtostuffUtils.deserialize(body, String.class);
+        String s = new String(body);
         out.add(JSON.parseObject(s,RemotePojo.class));
     }
+
+
 }

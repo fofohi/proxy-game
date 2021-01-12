@@ -6,6 +6,8 @@ import com.proxy.game.pojo.context.HandlerContext;
 import com.proxy.game.pojo.util.MsgEncoder;
 import com.proxy.game.pojo.util.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -17,6 +19,10 @@ import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.Promise;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 /**
  * 浏览器到本地代理的入口
@@ -26,12 +32,11 @@ public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
 
     private Channel localChannel;
 
-    private Channel remoteChannel;
-
     private static NioEventLoopGroup thisGroup = new NioEventLoopGroup(2);
 
     @Override
-    public void channelRead(ChannelHandlerContext browserAndServerChannel, Object msg){
+    public void channelRead(final ChannelHandlerContext browserAndServerChannel, Object msg){
+
         if(msg instanceof FullHttpRequest){
             localChannel = browserAndServerChannel.channel();
             log.info("full http request {}",msg);
@@ -44,6 +49,20 @@ public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
                     @Override
                     public void operationComplete(Future<Channel> future) {
                         RemotePojo remotePojo = new RemotePojo();
+                        remotePojo.setUri(fullMsg.uri());
+                        ByteBuf bf = Unpooled.buffer();
+                        bf.writeBytes(fullMsg.content());
+                        remotePojo.getContent().add(bf.array());
+                        bf.release();
+                        remotePojo.setMethod(fullMsg.method().name());
+                        remotePojo.setHttpVersion(fullMsg.protocolVersion().protocolName());
+                        HashMap<String, String> headerMap = new HashMap<>();
+                        List<Map.Entry<String, String>> entries = fullMsg.headers().entries();
+                        for (Map.Entry<String, String> entry : entries) {
+                            headerMap.put(entry.getKey(),entry.getValue());
+                        }
+                        remotePojo.setHeaders(headerMap);
+
                         future.getNow().writeAndFlush(remotePojo);
                         log.info("success {}",Thread.currentThread().getName());
                     }
@@ -58,6 +77,7 @@ public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
                         .handler(new ChannelInitializer<NioSocketChannel>() {
                             @Override
                             protected void initChannel(NioSocketChannel ch) {
+                                ch.pipeline().addLast(new PraByteHandler(browserAndServerChannel));
                                 ch.pipeline().addLast(HandlerContext.PROXY_MSG_ENCODER,new MsgEncoder());
                             }
                         });

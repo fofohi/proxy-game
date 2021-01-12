@@ -11,6 +11,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpServerCodec;
 
 /**
@@ -27,7 +28,7 @@ public class ProxyLocalClientServer {
         Channel httpChannel = null;
         try {
             EventLoopGroup bossGroup = OsHelper.buildEventLoopGroup(1);
-            EventLoopGroup workerGroup = OsHelper.buildEventLoopGroup(0);
+            EventLoopGroup workerGroup = OsHelper.buildEventLoopGroup(4);
 
             ServerBootstrap b = new ServerBootstrap();
             b.option(ChannelOption.SO_BACKLOG, 10240);
@@ -37,7 +38,7 @@ public class ProxyLocalClientServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) {
-                            ch.pipeline().addLast(new HttpServerCodec());
+                            ch.pipeline().addLast(new HttpRequestDecoder());
                             ch.pipeline().addLast(new HttpObjectAggregator(10240000));
                             ch.pipeline().addLast(HandlerContext.PROXY_BROWSER_TO_LOCAL_IN_HANDLER,new ProxyBrowserToLocalInHandler());
                         }

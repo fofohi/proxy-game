@@ -25,5 +25,7 @@ public class PraHttpProxyHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.error("error {}",cause.getMessage());
+        super.exceptionCaught(ctx, cause);
+        SocksServerUtils.closeOnFlush(ctx.channel());
     }
 }

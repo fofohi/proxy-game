@@ -2,14 +2,12 @@ package com.proxy.game.netty.pra;
 
 import com.proxy.game.netty.pojo.KryoMsgEncoder;
 import com.proxy.game.netty.pojo.RemotePojo;
-import com.proxy.game.ssl.TestSsl2Handler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.*;
-import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.Promise;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 @Slf4j
@@ -34,11 +33,7 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
 
     private Channel clientChannel;
 
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        log.error("error {}",cause.getMessage());
-    }
+    private static ConcurrentHashMap concurrentHashMap = new ConcurrentHashMap();
 
     @Override
     public void channelRead(ChannelHandlerContext browserAndServer, Object msg){
@@ -55,7 +50,7 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
         }else {
             contents.add((HttpContent) msg);
             if (request.method().equals(HttpMethod.CONNECT)) {
-                clientChannel.config().setAutoRead(false);
+               /* clientChannel.config().setAutoRead(false);
                 ChannelFuture sslFuture = clientChannel.writeAndFlush(Unpooled.wrappedBuffer("HTTP/1.1 200 Connection Established\r\n\r\n".getBytes()));
                 sslFuture.addListener((ChannelFutureListener) future -> {
                     if (future.isSuccess() && future.isDone()){
@@ -75,7 +70,7 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
                                 ch.pipeline().addLast(new TestSsl2Handler(clientChannel));
                             }
                         });
-                ChannelFuture f = b.connect("localhost",9077);/*hostAndPort[0], hostAndPort.length > 1 ? Integer.parseInt(hostAndPort[1]) : 80);*/
+                ChannelFuture f = b.connect(hostAndPort[0], hostAndPort.length > 1 ? Integer.parseInt(hostAndPort[1]) : 80);
                 remoteChannel = f.channel();
 
                 f.addListener((ChannelFutureListener) future -> {
@@ -88,7 +83,8 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
                         SocksServerUtils.closeOnFlush(clientChannel);
                         SocksServerUtils.closeOnFlush(remoteChannel);
                     }
-                });
+                });*/
+                SocksServerUtils.closeOnFlush(browserAndServer.channel());
             }else{
                 Promise<Channel> promise = browserAndServer.executor().newPromise();
                 promise.addListener(
@@ -132,13 +128,16 @@ public class PraHttpInboundHandler extends ChannelInboundHandlerAdapter {
                         })
                 ;
                 b.connect("162.14.8.228",19077).addListener((ChannelFutureListener) future -> {
-
-
-                });
-
-
+                    });
 
             }
+
         }
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        super.exceptionCaught(ctx, cause);
+        SocksServerUtils.closeOnFlush(ctx.channel());
     }
 }
