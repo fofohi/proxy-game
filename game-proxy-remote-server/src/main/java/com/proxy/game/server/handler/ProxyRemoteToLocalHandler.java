@@ -1,9 +1,6 @@
 package com.proxy.game.server.handler;
 
-import com.alibaba.fastjson.JSONObject;
 import com.proxy.game.pojo.RemotePojo;
-import com.proxy.game.pojo.util.MsgDecoder;
-import com.proxy.game.pojo.util.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -22,11 +19,7 @@ public class ProxyRemoteToLocalHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         RemotePojo remotePojo = (RemotePojo) msg;
-        StringBuilder contents = new StringBuilder();
-        for (byte[] bytes : remotePojo.getContent()) {
-            contents.append(new String(bytes));
-        }
-        log.info("msg content {}", contents.toString());
+        log.info("msg uri {} ", remotePojo.getUri());
         reconnectAndFlush(remotePojo, ctx);
     }
 
@@ -37,9 +30,9 @@ public class ProxyRemoteToLocalHandler extends ChannelInboundHandlerAdapter {
                     Channel remoteServerToNg = future.getNow();
                     if (future.isSuccess()) {
                         ByteBuf bf = Unpooled.buffer();
-                        for (byte[] s : pojo.getContent()) {
-                            if(s.length != 0){
-                                bf.writeBytes(s);
+                        for (byte s : pojo.getContent()) {
+                            if(s != 0){
+                                bf.writeByte(s);
                             }
                         }
                         DefaultFullHttpRequest full = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
@@ -72,7 +65,7 @@ public class ProxyRemoteToLocalHandler extends ChannelInboundHandlerAdapter {
         /*b2.connect(hostAndPortString[0], hostAndPortString.length > 1 ? Integer.parseInt(hostAndPortString[1]) : 80).addListener((ChannelFutureListener) future -> {
             promise.setSuccess(future.channel());
         });*/
-        b2.connect("localhost",11431).addListener((ChannelFutureListener) future -> {
+        b2.connect("localhost",80).addListener((ChannelFutureListener) future -> {
             promise.setSuccess(future.channel());
         });
     }

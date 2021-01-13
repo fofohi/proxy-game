@@ -1,6 +1,7 @@
 package com.proxy.game.client;
 
 import com.proxy.game.client.handler.ProxyBrowserToLocalInHandler;
+import com.proxy.game.client.handler.ProxySslHandler;
 import com.proxy.game.pojo.context.HandlerContext;
 import com.proxy.game.pojo.util.OsHelper;
 import com.proxy.game.pojo.util.SocksServerUtils;
@@ -42,7 +43,9 @@ public class ProxyLocalClientServer {
                         protected void initChannel(SocketChannel ch) {
                             ch.pipeline().addLast(new HttpRequestDecoder());
                             ch.pipeline().addLast(new HttpObjectAggregator(10240000));
-                            ch.pipeline().addLast(HandlerContext.PROXY_BROWSER_TO_LOCAL_IN_HANDLER,new ProxyBrowserToLocalInHandler());
+                            ch.pipeline().addLast(new ProxyBrowserToLocalInHandler());
+                            ch.pipeline().addLast(new ProxySslHandler());
+
                         }
                     })
             ;

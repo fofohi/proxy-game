@@ -12,7 +12,7 @@ public class RemotePojo implements Serializable {
 
     private String uri;
 
-    private List<byte[]> content = new ArrayList<>();
+    private List<Byte> content = new ArrayList<>();
 
     private String httpVersion;
 

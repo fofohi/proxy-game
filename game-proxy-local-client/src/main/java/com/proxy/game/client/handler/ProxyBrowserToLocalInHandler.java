@@ -8,6 +8,8 @@ import com.proxy.game.pojo.util.SocksServerUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.buffer.UnpooledDirectByteBuf;
+import io.netty.buffer.UnpooledHeapByteBuf;
 import io.netty.channel.*;
 
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -17,6 +19,7 @@ import io.netty.handler.codec.http.*;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.Promise;
+import io.undertow.connector.PooledByteBuffer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -31,30 +34,45 @@ import java.util.Map;
 @Slf4j
 public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
 
-    private Channel localChannel;
-
-    private static NioEventLoopGroup thisGroup = new NioEventLoopGroup(2);
-
     @Override
     public void channelRead(final ChannelHandlerContext browserAndServerChannel, Object msg){
 
         if(msg instanceof FullHttpRequest){
-            localChannel = browserAndServerChannel.channel();
+            Channel localChannel = browserAndServerChannel.channel();
             log.info("full http request {}",msg);
             final FullHttpRequest fullMsg = (FullHttpRequest) msg;
             if(fullMsg.method().equals(HttpMethod.CONNECT)){
-                SocksServerUtils.closeOnFlush(browserAndServerChannel.channel());
+                browserAndServerChannel.fireChannelRead(msg);
             }else{
+                //todo config remote server ip
+                //localServerAndRemoteServerChannel
+                String hostAndPort = fullMsg.headers().get("Host");
+                String[] hostAndPortString = hostAndPort.split(":");
+                String host = (hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game.mbga.jp")) ? "localhost" : hostAndPortString[0];
+                int port = (hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game.mbga.jp")) ? 9077 : hostAndPortString.length > 1 ? Integer.parseInt(hostAndPortString[1]) : 80;
+
                 final Promise<Channel> browserAndServerPromise = browserAndServerChannel.executor().newPromise();
-                browserAndServerPromise.addListener(new FutureListener<Channel>() {
-                    @Override
-                    public void operationComplete(Future<Channel> future) {
+                browserAndServerPromise.addListener((FutureListener<Channel>) future -> {
+                    if((hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game.mbga.jp"))){
                         RemotePojo remotePojo = new RemotePojo();
                         remotePojo.setUri(fullMsg.uri());
-                        ByteBuf bf = Unpooled.buffer();
-                        bf.writeBytes(fullMsg.content());
-                        remotePojo.getContent().add(bf.array());
-                        bf.release();
+                        if(fullMsg.content().isDirect()){
+                            ByteBuf bf = Unpooled.buffer();
+                            bf.writeBytes(fullMsg.content());
+                            for (byte b : bf.array()) {
+                                if(b != 0){
+                                    remotePojo.getContent().add(b);
+                                }
+                            }
+                            bf.release();
+                        }else{
+                            for (byte b : fullMsg.content().array()) {
+                                if(b != 0){
+                                    remotePojo.getContent().add(b);
+                                }
+                            }
+                        }
+
                         remotePojo.setMethod(fullMsg.method().name());
                         remotePojo.setHttpVersion(fullMsg.protocolVersion().protocolName());
                         HashMap<String, String> headerMap = new HashMap<>();
@@ -65,11 +83,11 @@ public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
                         remotePojo.setHeaders(headerMap);
 
                         future.getNow().writeAndFlush(remotePojo);
-                        log.info("success {}",Thread.currentThread().getName());
+                    }else{
+                        future.getNow().writeAndFlush(fullMsg);
                     }
                 });
 
-                log.info("success {}",Thread.currentThread().getName());
                 //本地server连接远程server
                 Bootstrap b = new Bootstrap();
                 b.group(browserAndServerChannel.channel().eventLoop())
@@ -78,18 +96,18 @@ public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
                         .handler(new ChannelInitializer<NioSocketChannel>() {
                             @Override
                             protected void initChannel(NioSocketChannel ch) {
+                                if((hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game.mbga.jp"))){
+                                    ch.pipeline().addLast(HandlerContext.PROXY_MSG_ENCODER,new MsgEncoder());
+                                }else{
+                                    ch.pipeline().addLast(new HttpRequestEncoder());
+                                }
                                 ch.pipeline().addLast(new ProxyToClientByteHandler(browserAndServerChannel));
-                                ch.pipeline().addLast(HandlerContext.PROXY_MSG_ENCODER,new MsgEncoder());
                             }
                         });
-                //todo config remote server ip
-                //localServerAndRemoteServerChannel
-                b.connect("162.14.8.228",19077).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) {
-                        log.info("connect 162.14.8.228 9077 success {}",Thread.currentThread().getName());
-                        browserAndServerPromise.setSuccess(future.channel());
-                    }
+
+                b.connect(host,port).addListener((ChannelFutureListener) future -> {
+                    log.info("connect " + host + " :" + port + " success {}",Thread.currentThread().getName());
+                    browserAndServerPromise.setSuccess(future.channel());
                 });
             }
         }
