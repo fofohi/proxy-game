@@ -48,12 +48,12 @@ public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
                 //localServerAndRemoteServerChannel
                 String hostAndPort = fullMsg.headers().get("Host");
                 String[] hostAndPortString = hostAndPort.split(":");
-                String host = (hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game.mbga.jp")) ? "localhost" : hostAndPortString[0];
-                int port = (hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game.mbga.jp")) ? 9077 : hostAndPortString.length > 1 ? Integer.parseInt(hostAndPortString[1]) : 80;
+                String host = (hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game")) ? "121.127.253.117" : hostAndPortString[0];
+                int port = (hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game")) ? 9077 : hostAndPortString.length > 1 ? Integer.parseInt(hostAndPortString[1]) : 80;
 
                 final Promise<Channel> browserAndServerPromise = browserAndServerChannel.executor().newPromise();
                 browserAndServerPromise.addListener((FutureListener<Channel>) future -> {
-                    if((hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game.mbga.jp"))){
+                    if((hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game"))){
                         RemotePojo remotePojo = new RemotePojo();
                         remotePojo.setUri(fullMsg.uri());
                         if(fullMsg.content().isDirect()){
@@ -96,7 +96,7 @@ public class ProxyBrowserToLocalInHandler extends ChannelInboundHandlerAdapter {
                         .handler(new ChannelInitializer<NioSocketChannel>() {
                             @Override
                             protected void initChannel(NioSocketChannel ch) {
-                                if((hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game.mbga.jp"))){
+                                if((hostAndPortString[0].contains("granblue") || hostAndPortString[0].contains("gbf.game"))){
                                     ch.pipeline().addLast(HandlerContext.PROXY_MSG_ENCODER,new MsgEncoder());
                                 }else{
                                     ch.pipeline().addLast(new HttpRequestEncoder());

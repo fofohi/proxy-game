@@ -62,7 +62,7 @@ public class ProxyRemoteToLocalHandler extends ChannelInboundHandlerAdapter {
         ;
 
 
-        if(pojo.getUri().contains("granbluefantasy") || pojo.getUri().contains("gbf.game.mbga.jp")){
+        if(pojo.getUri().contains("granbluefantasy") || pojo.getUri().contains("gbf.game")){
             b2.connect("localhost",11431).addListener((ChannelFutureListener) future -> {
                 promise.setSuccess(future.channel());
             });
