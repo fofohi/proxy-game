@@ -60,13 +60,19 @@ public class ProxyRemoteToLocalHandler extends ChannelInboundHandlerAdapter {
                     }
                 })
         ;
-        String hostAndPort = pojo.getHeaders().get("Host");
-        String[] hostAndPortString = hostAndPort.split(":");
-        /*b2.connect(hostAndPortString[0], hostAndPortString.length > 1 ? Integer.parseInt(hostAndPortString[1]) : 80).addListener((ChannelFutureListener) future -> {
-            promise.setSuccess(future.channel());
-        });*/
-        b2.connect("localhost",80).addListener((ChannelFutureListener) future -> {
-            promise.setSuccess(future.channel());
-        });
+
+
+        if(pojo.getUri().contains("granbluefantasy") || pojo.getUri().contains("gbf.game.mbga.jp")){
+            b2.connect("localhost",11431).addListener((ChannelFutureListener) future -> {
+                promise.setSuccess(future.channel());
+            });
+        }else{
+            String hostAndPort = pojo.getHeaders().get("Host");
+            String[] hostAndPortString = hostAndPort.split(":");
+            b2.connect(hostAndPortString[0], hostAndPortString.length > 1 ? Integer.parseInt(hostAndPortString[1]) : 80).addListener((ChannelFutureListener) future -> {
+                promise.setSuccess(future.channel());
+            });
+        }
+
     }
 }
